@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Guitar Chords</title>
+<style>
+body{
+font-family:Arial;
+background:#111;
+color:white;
+margin:20px;
+}
+
+h1{
+text-align:center;
+font-size:40px;
+margin-bottom:20px;
+}
+
+.tabs{
+display:flex;
+justify-content:center;
+margin-bottom:20px;
+}
+
+.tab{
+padding:10px 20px;
+margin:0 5px;
+cursor:pointer;
+background:#222;
+border-radius:5px 5px 0 0;
+}
+
+.tab.active{
+background:#ff9800;
+color:#000;
+font-weight:bold;
+}
+
+.tabContent{
+display:none;
+background:#1e1e1e;
+padding:20px;
+border-radius:0 5px 5px 5px;
+margin-bottom:20px;
+}
+
+input,textarea,select,button{
+padding:10px;
+margin:5px;
+width:250px;
+}
+
+button{
+background:#ff9800;
+border:none;
+color:white;
+cursor:pointer;
+}
+
+#songsContainer{
+display:grid;
+grid-template-columns: repeat(auto-fit,minmax(350px,1fr));
+gap:20px;
+margin-top:20px;
+}
+
+.song{
+background:#222;
+padding:15px;
+border-radius:10px;
+}
+
+.song h2{
+border-bottom:1px solid gray;
+padding-bottom:5px;
+}
+
+.sectionTitle{
+color:#ffcc00;
+font-weight:bold;
+margin-bottom:5px;
+}
+
+.chordRow{
+font-size:22px;
+font-weight:bold;
+margin-bottom:5px;
+}
+</style>
+</head>
+<body>
+
+<h1>🎸 Guitar Chords</h1>
+
+<div class="tabs">
+<div class="tab active" onclick="openTab('saveTab')">Save Song</div>
+<div class="tab" onclick="openTab('editTab')">Edit Song</div>
+<div class="tab" onclick="openTab('deleteTab')">Delete Song</div>
+<div class="tab" onclick="openTab('backupTab')">Download Backup</div>
+</div>
+
+<!-- SAVE SONG TAB -->
+<div class="tabContent" id="saveTab" style="display:block;">
+<input type="text" id="saveSongName" placeholder="Song Name"><br>
+<input type="text" id="saveSectionName" placeholder="Intro / Verse / Chorus / Inter"><br>
+<textarea id="saveChords" rows="3" placeholder="C G Am F"></textarea><br>
+<button onclick="addSong()">Save Song</button>
+</div>
+
+<!-- EDIT SONG TAB -->
+<div class="tabContent" id="editTab">
+<select id="editSongSelect"></select><br>
+<input type="text" id="editSectionName" placeholder="Section Name"><br>
+<textarea id="editChords" rows="3" placeholder="C G Am F"></textarea><br>
+<button onclick="editSong()">Update Song</button>
+</div>
+
+<!-- DELETE SONG TAB -->
+<div class="tabContent" id="deleteTab">
+<select id="deleteSongSelect"></select><br>
+<button onclick="deleteSong()">Delete Song</button>
+</div>
+
+<!-- BACKUP TAB -->
+<div class="tabContent" id="backupTab">
+<button onclick="downloadBackup()">Download JSON Backup</button><br>
+<p>Backup file save කරලා අවශ්‍ය නම් restore කරගන්න පුළුවන්.</p>
+</div>
+
+<div id="songsContainer"></div>
+
+<script>
+let songs = JSON.parse(localStorage.getItem("songs")) || [];
+
+function superscriptChord(chord){
+chord = chord.replace("m","<sup>m</sup>");
+chord = chord.replace("7","<sup>7</sup>");
+chord = chord.replace("b","<sup>♭</sup>");
+chord = chord.replace("#","<sup>♯</sup>");
+return chord;
+}
+
+function saveToLocal(){
+localStorage.setItem("songs",JSON.stringify(songs));
+updateSelectOptions();
+displaySongs();
+}
+
+function updateSelectOptions(){
+let editSelect=document.getElementById("editSongSelect");
+let deleteSelect=document.getElementById("deleteSongSelect");
+editSelect.innerHTML="";
+deleteSelect.innerHTML="";
+songs.forEach(s=>{
+let opt1=document.createElement("option");
+opt1.value=s.name;
+opt1.innerText=s.name;
+editSelect.appendChild(opt1);
+let opt2=document.createElement("option");
+opt2.value=s.name;
+opt2.innerText=s.name;
+deleteSelect.appendChild(opt2);
+});
+}
+
+function displaySongs(){
+let container=document.getElementById("songsContainer");
+container.innerHTML="";
+songs.forEach(song=>{
+let songDiv=document.createElement("div");
+songDiv.className="song";
+let title=document.createElement("h2");
+title.innerText=song.name;
+songDiv.appendChild(title);
+song.sections.forEach(sec=>{
+let sectionDiv=document.createElement("div");
+let secTitle=document.createElement("div");
+secTitle.className="sectionTitle";
+secTitle.innerText=sec.name;
+sectionDiv.appendChild(secTitle);
+let chordArray=sec.chords.split(" ");
+for(let i=0;i<chordArray.length;i+=4){
+let row=document.createElement("div");
+row.className="chordRow";
+let text="| ";
+for(let j=i;j<i+4 && j<chordArray.length;j++){
+text+=superscriptChord(chordArray[j])+" | ";
+}
+row.innerHTML=text;
+sectionDiv.appendChild(row);
+}
+songDiv.appendChild(sectionDiv);
+});
+container.appendChild(songDiv);
+});
+}
+
+// Tabs
+function openTab(tabName){
+document.querySelectorAll('.tabContent').forEach(t=>t.style.display='none');
+document.getElementById(tabName).style.display='block';
+document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+event.currentTarget.classList.add('active');
+}
+
+// Save Song
+function addSong(){
+let name=document.getElementById("saveSongName").value.trim();
+let section=document.getElementById("saveSectionName").value.trim();
+let chords=document.getElementById("saveChords").value.trim();
+if(!name || !section || !chords){alert("All fields required!"); return;}
+let song=songs.find(s=>s.name===name);
+if(!song){
+song={name:name,sections:[]};
+songs.push(song);
+}
+song.sections.push({name:section,chords:chords});
+saveToLocal();
+document.getElementById("saveSongName").value="";
+document.getElementById("saveSectionName").value="";
+document.getElementById("saveChords").value="";
+}
+
+// Edit Song
+function editSong(){
+let select=document.getElementById("editSongSelect");
+let song=songs.find(s=>s.name===select.value);
+if(!song){alert("Select a song!"); return;}
+let section=document.getElementById("editSectionName").value.trim();
+let chords=document.getElementById("editChords").value.trim();
+if(!section || !chords){alert("Section name and chords required!"); return;}
+song.sections.push({name:section,chords:chords});
+saveToLocal();
+document.getElementById("editSectionName").value="";
+document.getElementById("editChords").value="";
+}
+
+// Delete Song
+function deleteSong(){
+let select=document.getElementById("deleteSongSelect");
+songs=songs.filter(s=>s.name!==select.value);
+saveToLocal();
+}
+
+// Backup JSON download
+function downloadBackup(){
+let dataStr="data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(songs,null,2));
+let dlAnchor=document.createElement("a");
+dlAnchor.setAttribute("href",dataStr);
+dlAnchor.setAttribute("download","guitar_chords_backup.json");
+dlAnchor.click();
+}
+
+updateSelectOptions();
+displaySongs();
+
+</script>
+
+</body>
+</html>
